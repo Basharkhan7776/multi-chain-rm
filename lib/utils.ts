@@ -16,6 +16,21 @@ export function formatBalance(amount: number, decimals = 2): string {
 }
 
 /**
+ * Formats a number using compact notation (K, M, B, T).
+ * e.g. 1500 -> 1.5K, 1000000 -> 1M
+ */
+export function formatCompactNumber(number: number | string): string {
+  const num = typeof number === "string" ? parseFloat(number) : number;
+  if (isNaN(num)) return "0";
+
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 2,
+  }).format(num);
+}
+
+
+/**
  * Calculate global totals by summing balances across all chains
  */
 export function calculateGlobalTotals(tokenLists: Array<Array<{ token_id: string; amount: string }>>) {

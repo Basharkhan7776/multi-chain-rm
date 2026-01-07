@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MockChainData } from "@/lib/mock-data";
+import { formatCompactNumber } from "@/lib/utils";
 
 interface ChainCardProps {
   chain: MockChainData;
@@ -41,7 +42,7 @@ export function ChainCard({ chain }: ChainCardProps) {
                   className="flex items-center justify-between text-sm border-b border-border/50 last:border-0 py-2"
                 >
                   <span className="font-medium text-foreground">{token.token_id}</span>
-                  <span className="text-muted-foreground font-mono">{token.amount}</span>
+                  <span className="text-muted-foreground font-mono">{formatCompactNumber(token.amount)}</span>
                 </div>
               ))}
             </div>

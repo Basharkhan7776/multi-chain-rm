@@ -1,14 +1,13 @@
 
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { ControlBar } from "@/components/dashboard/control-bar";
 import { TokenResults } from "@/components/dashboard/token-results";
-import { MOCK_CHAIN_NAMES } from "@/lib/mock-data";
 import { usePortfolio } from "@/hooks/use-portfolio";
-import { useState } from "react";
+import { useChains } from "@/hooks/use-chains";
 import { useDisconnect } from "wagmi";
 import { useAppDispatch } from "@/lib/store/store";
 import { setAddress } from "@/lib/store/features/wallet-slice";
@@ -28,38 +27,39 @@ export default function DashboardPage() {
 
   // State
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [chainFilter, setChainFilter] = useState("all");
   const [sortBy, setSortBy] = useState("highest"); 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  // Data Fetching
-  const { data: portfolioData, isLoading, isError, address } = usePortfolio();
+  // Debounce Search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Data Fetching: Pass filters to the hook (Server-Side)
+  const { data: portfolioData, isLoading, isError, address } = usePortfolio({
+    search: debouncedSearch,
+    chain: chainFilter
+  });
+
+  const { data: chainOptionsData } = useChains();
   
   const displayData = portfolioData || [];
   
-  // Extract chain names dynamically from real data
-  const dynamicChainOptions = useMemo(() => {
-    if (!displayData.length) return MOCK_CHAIN_NAMES;
-    return Array.from(new Set(displayData.map(c => c.display_name))).sort();
-  }, [displayData]);
+  // Use fetched chain options
+  const chainOptions = chainOptionsData || [];
 
   // Filter & Sort Logic
   const filteredData = useMemo(() => {
     let data = [...displayData];
 
-    // 1. Filter by Chain
-    if (chainFilter !== "all") {
-      data = data.filter((item) => item.display_name === chainFilter);
-    }
-
-    // 2. Filter by Search (Token Name)
-    if (searchQuery.trim() !== "") {
-      const query = searchQuery.toLowerCase();
-      data = data.map(chain => ({
-        ...chain,
-        balances: chain.balances.filter(token => token.token_id.toLowerCase().includes(query))
-      })).filter(chain => chain.balances.length > 0);
-    }
+    // Note: Filtering is now handled on the server via usePortfolio
+    // We only handle client-side sorting here
 
     // 3. Sort
     if (sortBy === "alphabetical") {
@@ -78,7 +78,7 @@ export default function DashboardPage() {
     }
 
     return data;
-  }, [chainFilter, searchQuery, sortBy, displayData]);
+  }, [sortBy, displayData]);
   
   // Calculate Global Net Worth
   const globalNetWorth = useMemo(() => {
@@ -111,7 +111,7 @@ export default function DashboardPage() {
           onSortChange={setSortBy}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
-          chainOptions={dynamicChainOptions}
+          chainOptions={chainOptions}
           onDisconnect={handleDisconnect}
         />
 

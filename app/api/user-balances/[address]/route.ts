@@ -5,7 +5,7 @@ import { GraphQLClient } from "graphql-request";
 
 const GQL_ENDPOINT = "https://testnet.api.euclidprotocol.com/graphql";
 const client = new GraphQLClient(GQL_ENDPOINT);
-const sdk = getSdk(client);
+const sdk = getSdk(client as any);
 
 interface TokenMetadata {
     tokenId: string;
@@ -20,6 +20,9 @@ export async function GET(
   { params }: { params: Promise<{ address: string }> }
 ) {
   const { address } = await params;
+  const { searchParams } = new URL(request.url);
+  const chainFilter = searchParams.get("chain");
+  const searchQuery = searchParams.get("search")?.toLowerCase();
 
   if (!address) {
     return NextResponse.json({ error: "Address is required" }, { status: 400 });
@@ -34,9 +37,15 @@ export async function GET(
     // 2. Fetch all available EVM chains
     const chainsRes = await sdk.CODEGEN_GENERATED_CHAINS_ALL_CHAINS();
     const allChains = chainsRes.chains.all_chains;
-    const evmChains = allChains.filter((c) =>
+    let evmChains = allChains.filter((c) =>
       c.factory_address.startsWith("0x"),
     );
+
+    // OPTIMIZATION: value filtering *before* fetching balances
+    // If a specific chain is requested, only query that chain.
+    if (chainFilter && chainFilter !== "all" && chainFilter !== "null") {
+        evmChains = evmChains.filter(c => c.display_name === chainFilter || c.chain_uid === chainFilter);
+    }
 
     // Fetch token metadata
     // We try/catch this separately in case it fails, or just let it fail the request?
@@ -68,6 +77,11 @@ export async function GET(
       };
     });
 
+    // If no chains to query (e.g. invalid filter), return empty
+    if (queries.length === 0) {
+        return NextResponse.json([]); 
+    }
+
     const multicallRes =
       await sdk.CODEGEN_GENERATED_CW_MULTICALL_SMART_QUERIES({
         chain_uid: "neuron",
@@ -77,7 +91,7 @@ export async function GET(
     // 4. Format the response
     const results = multicallRes.cw_multicall.smart_queries.results;
 
-    const formattedResponse = results.map((res, index) => {
+    let formattedResponse = results.map((res, index) => {
       const chain = evmChains[index];
       const baseInfo = {
         display_name: chain.display_name,
@@ -122,6 +136,39 @@ export async function GET(
 
       return { ...baseInfo, error: "Unknown error or empty response", balances: [] };
     });
+
+    // 5. SERVER-SIDE SEARCH FILTERING
+    if (searchQuery) {
+        formattedResponse = formattedResponse.map(chain => {
+            // Check if chain name matches
+            const chainMatches = chain.display_name.toLowerCase().includes(searchQuery);
+            
+            // Filter tokens that match
+            const matchingTokens = chain.balances.filter((token: any) => {
+                const tokenId = token.token_id.toLowerCase();
+                const displayName = token.displayName?.toLowerCase() || "";
+                return tokenId.includes(searchQuery) || displayName.includes(searchQuery);
+            });
+
+            // Logic: 
+            // - If chain name matches, return chain with ALL tokens? 
+            //   Usually better to still filter tokens if the user is typing "USDC" but if they type "Ethereum" they might want all.
+            //   Let's stick to strict helpfulness: If I type "Eth", I see Ethereum chain (all tokens) AND other chains' "ETH" tokens.
+            if (chainMatches) {
+                return chain;
+            }
+            
+            // If chain doesn't match, return chain only if it has matching tokens
+            if (matchingTokens.length > 0) {
+                return {
+                    ...chain,
+                    balances: matchingTokens
+                };
+            }
+
+            return null; // Exclude this chain
+        }).filter(Boolean) as any[];
+    }
 
     return NextResponse.json(formattedResponse, {
         headers: {

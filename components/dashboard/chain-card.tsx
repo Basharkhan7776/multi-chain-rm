@@ -65,7 +65,7 @@ export function ChainCard({ chain }: ChainCardProps) {
           </CardTitle>
           <div className="text-right">
             <div className="text-sm font-bold">
-              {formatCurrency(totalValue)}
+              ${formatCompactNumber(totalValue)}
             </div>
             <Badge
               variant={isEmpty ? "secondary" : "outline"}
@@ -122,7 +122,13 @@ export function ChainCard({ chain }: ChainCardProps) {
                     </span>
                     {token.price && (
                       <span className="text-xs text-muted-foreground">
-                        ${parseFloat(token.price).toFixed(2)}
+                        $
+                        {formatCompactNumber(
+                          getAdjustedAmount(
+                            token.amount,
+                            token.decimals ?? 18
+                          ) * parseFloat(token.price)
+                        )}
                       </span>
                     )}
                   </div>

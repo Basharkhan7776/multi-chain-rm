@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { ControlBar } from "@/components/dashboard/control-bar";
 import { TokenResults } from "@/components/dashboard/token-results";
 import { usePortfolio } from "@/hooks/use-portfolio";
@@ -177,12 +177,7 @@ export default function DashboardPage() {
         {/* Results Area */}
         <div className="mt-8 flex-1 flex flex-col">
           {isLoading ? (
-            <div className="flex-1 flex flex-col items-center justify-center space-y-4">
-              <Loader2 className="h-10 w-10 animate-spin text-primary" />
-              <p className="text-muted-foreground">
-                Fetching balances from Euclid Protocol...
-              </p>
-            </div>
+            <SkeletonLoader count={6} />
           ) : isError ? (
             <div className="flex-1 flex flex-col items-center justify-center text-destructive">
               <p className="text-lg font-semibold">

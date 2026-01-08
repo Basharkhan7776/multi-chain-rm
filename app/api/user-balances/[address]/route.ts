@@ -28,6 +28,12 @@ export async function GET(
     return NextResponse.json({ error: "Address is required" }, { status: 400 });
   }
 
+  // Validate EVM address format
+  const evmAddressRegex = /^0x[a-fA-F0-9]{40}$/;
+  if (!evmAddressRegex.test(address)) {
+      return NextResponse.json({ error: "Invalid EVM wallet address" }, { status: 400 });
+  }
+
   try {
     // 1. Fetch router state
     const routerStateRes = await sdk.CODEGEN_GENERATED_ROUTER_STATE();

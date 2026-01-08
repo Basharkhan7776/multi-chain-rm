@@ -13,7 +13,14 @@ async function fetchUserBalances(address: string, search?: string, chain?: strin
   
   const res = await fetch(url);
   if (!res.ok) {
-    throw new Error("Failed to fetch balances");
+    let errorMessage = "Failed to fetch balances";
+    try {
+        const errorData = await res.json();
+        errorMessage = errorData.error || errorMessage;
+    } catch (e) {
+        // ignore json parse error
+    }
+    throw new Error(errorMessage);
   }
   return res.json();
 }

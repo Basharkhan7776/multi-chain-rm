@@ -23,7 +23,7 @@ export function ConnectButton() {
   return (
     <>
       <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.2 }}>
-        <Button onClick={handleClick} size="lg" className="px-6 py-3 text-base font-medium">
+        <Button onClick={handleClick} size="lg" className="w-44 px-6 py-3 text-base font-medium">
           {isConnected ? displayAddress : "Connect Wallet"}
         </Button>
       </motion.div>

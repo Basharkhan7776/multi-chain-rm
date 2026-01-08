@@ -1,6 +1,6 @@
                                         
 import { useState } from "react";
-import { MockChainData } from "@/lib/mock-data";
+import { Chain } from "@/lib/types";
 import { ChainCard } from "@/components/dashboard/chain-card";
 import {
   Pagination,
@@ -13,11 +13,11 @@ import {
 } from "@/components/ui/pagination";
 
 interface TokenResultsProps {
-  chains: MockChainData[];
+  chains: Chain[];
   viewMode: "grid" | "list";
 }
 
-const ITEMS_PER_PAGE = 8;
+const ITEMS_PER_PAGE = 6;
 
 export function TokenResults({ chains, viewMode }: TokenResultsProps) {
   const [currentPage, setCurrentPage] = useState(1);

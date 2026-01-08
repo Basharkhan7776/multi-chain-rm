@@ -1,78 +1,18 @@
 
 import { NextResponse } from "next/server";
+import { getSdk } from "@euclidprotocol/graphql-codegen/dist/src/node";
+import { GraphQLClient } from "graphql-request";
 
-// CONFIGURATION
 const GQL_ENDPOINT = "https://testnet.api.euclidprotocol.com/graphql";
+const client = new GraphQLClient(GQL_ENDPOINT);
+const sdk = getSdk(client);
 
-// QUERY DEFINITIONS
-const ROUTER_QUERY = `
-  query {
-    router {
-      state {
-        virtual_balance_address
-      }
-    }
-  }
-`;
-
-const CHAINS_QUERY = `
-  query {
-    chains {
-      all_evm_chains {
-        chain_uid
-      }
-    }
-  }
-`;
-
-const BALANCE_QUERY = `
-  query Balances($chain_uid: String!, $queries: [SmartQueryInput!]!) {
-    cw_multicall(chain_uid: $chain_uid) {
-      smart_queries(queries: $queries) {
-        results {
-          success
-        }
-      }
-    }
-  }
-`;
-
-// TYPES
-interface Chain {
-  chain_uid: string;
-  display_name?: string;
-  icon?: string;
-}
-
-interface TokenBalance {
-  token_id: string;
-  amount: string;
-}
-
-interface ChainBalanceResponse {
-  chain_uid: string;
-  balances: TokenBalance[];
-}
-
-// HELPER: GENERIC FETCHER
-async function fetchGraphQL(query: string, variables = {}) {
-  const response = await fetch(GQL_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query, variables }),
-    cache: 'no-store'
-  });
-
-  const json = await response.json();
-
-  if (!response.ok) {
-    throw new Error(`Network error: ${response.status} ${response.statusText} - ${JSON.stringify(json)}`);
-  }
-
-  if (json.errors) {
-    throw new Error(`GraphQL Error: ${JSON.stringify(json.errors)}`);
-  }
-  return json.data;
+interface TokenMetadata {
+    tokenId: string;
+    displayName: string;
+    image: string;
+    price: string;
+    coinDecimal: number;
 }
 
 export async function GET(
@@ -86,96 +26,111 @@ export async function GET(
   }
 
   try {
-    // STEP 1: Get Virtual Router Address
-    console.log("1️⃣ Fetching Router State...");
-    const routerData = await fetchGraphQL(ROUTER_QUERY);
-    const virtualAddress = routerData.router.state.virtual_balance_address;
-    console.log("✅ Router Address:", virtualAddress);
+    // 1. Fetch router state
+    const routerStateRes = await sdk.CODEGEN_GENERATED_ROUTER_STATE();
+    const virtualBalanceAddress =
+      routerStateRes.router.state.virtual_balance_address;
 
-    // STEP 2: Get All Available Chains
-    console.log("2️⃣ Fetching Chain List...");
-    const chainsData = await fetchGraphQL(CHAINS_QUERY);
-    const chains: Chain[] = chainsData.chains.all_evm_chains;
-    console.log(`✅ Found ${chains.length} chains`);
-    
-    // STEP 3: Fetch Balances for ALL chains in Parallel
-    console.log("3️⃣ Fetching Balances...");
-    const balancePromises = chains.map(async (chain) => {
-      const variables = {
-        chain_uid: "neuron",
-        queries: [
-          {
-            contract_address: virtualAddress,
-            msg: {
-              get_user_balances: {
-                user: {
-                  chain_uid: chain.chain_uid,
-                  address: address,
-                },
-                pagination: {
-                  skip: 0,
-                  limit: 10,
-                },
-              },
-            },
+    // 2. Fetch all available EVM chains
+    const chainsRes = await sdk.CODEGEN_GENERATED_CHAINS_ALL_CHAINS();
+    const allChains = chainsRes.chains.all_chains;
+    const evmChains = allChains.filter((c) =>
+      c.factory_address.startsWith("0x"),
+    );
+
+    // Fetch token metadata
+    // We try/catch this separately in case it fails, or just let it fail the request?
+    // The user example awaits it directly.
+    const tokenMetadataRes =
+      await sdk.CODEGEN_GENERATED_TOKEN_TOKEN_METADATAS();
+    const tokenMetadatas = tokenMetadataRes.token.token_metadatas;
+    // Map token metadata by tokenId for easy lookup
+    const tokenMap = new Map<string, any>(tokenMetadatas.map((t) => [t.tokenId, t]));
+
+    // Construct batch queries
+    const queries = evmChains.map((chain) => {
+      const msg = {
+        get_user_balances: {
+          user: {
+            chain_uid: chain.chain_uid,
+            address: address,
           },
-        ],
+          pagination: {
+            skip: 0,
+            limit: 10,
+          },
+        },
       };
 
-      try {
-        const response = await fetch(GQL_ENDPOINT, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: BALANCE_QUERY, variables }),
-            cache: 'no-store'
-        });
-        
-        const json = await response.json();
-        if (json.errors) throw new Error(JSON.stringify(json.errors));
+      return {
+        contract_address: virtualBalanceAddress,
+        msg: msg,
+      };
+    });
 
-        const results = json.data.cw_multicall.smart_queries.results;
-        
-        let balances: TokenBalance[] = [];
-        if (results && results.length > 0 && results[0].success) {
-          const data = results[0].success;
-          
-          // Index.js assumes 'data' is already the object with balances.
-          // We will strictly follow that.
-          if (data && data.balances) {
-            balances = data.balances.map((b: any) => ({
-              token_id: b.token_id,
-              amount: b.amount
-            }));
-          } else {
-             // Fallback: Check if it LOOKS like base64 string, just in case index.js environment was different
-             // But avoiding atob crash.
-             if (typeof data === 'string') {
-                 console.warn(`[${chain.chain_uid}] Received string success data, likely base64. Ensure msg was correct.`);
-             }
-          }
-        }
+    const multicallRes =
+      await sdk.CODEGEN_GENERATED_CW_MULTICALL_SMART_QUERIES({
+        chain_uid: "neuron",
+        cw_multicall_smart_queries_queries: queries,
+      });
 
+    // 4. Format the response
+    const results = multicallRes.cw_multicall.smart_queries.results;
+
+    const formattedResponse = results.map((res, index) => {
+      const chain = evmChains[index];
+      const baseInfo = {
+        display_name: chain.display_name,
+        chain_uid: chain.chain_uid,
+        chain_img: chain.logo,
+      };
+
+      if (res.error) {
         return {
-          chain_uid: chain.chain_uid,
-          name: chain.display_name || chain.chain_uid,
-          balances: balances
-        };
-      } catch (err) {
-        console.error(`Failed to fetch for ${chain.chain_uid}:`, err);
-        return {
-          chain_uid: chain.chain_uid,
-          name: chain.display_name || chain.chain_uid,
+          ...baseInfo,
+          error: res.error,
           balances: []
         };
       }
+
+      if (res.success && res.success.balances) {
+        const enhancedBalances = res.success.balances.map((bal: any) => {
+          const meta = tokenMap.get(bal.token_id);
+          return {
+            ...bal,
+            displayName: meta?.displayName, // Changed prompt's 'displayName' to match interface if needed but user prompt had camelCase
+            image: meta?.image,
+            price: meta?.price,
+            decimals: meta?.coinDecimal, // User prompt mapped coinDecimal to decimals
+          };
+        });
+
+        // If balances are empty, include the raw response to debug potential hidden errors
+        if (enhancedBalances.length === 0) {
+          return {
+            ...baseInfo,
+            balances: [],
+            raw_error_check: res,
+          };
+        }
+
+        return {
+          ...baseInfo,
+          balances: enhancedBalances,
+        };
+      }
+
+      return { ...baseInfo, error: "Unknown error or empty response", balances: [] };
     });
 
-    const results = await Promise.all(balancePromises);
-    console.log("✅ Done fetching balances.");
-    return NextResponse.json(results);
+    return NextResponse.json(formattedResponse, {
+        headers: {
+            'Cache-Control': 'no-store, max-age=0'
+        }
+    });
 
   } catch (error: any) {
-    console.error("❌ API Route Error:", error);
+    console.error("Error fetching balances:", error);
     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

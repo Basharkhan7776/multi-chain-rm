@@ -1,19 +1,20 @@
+
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wallet, Copy, Check } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/lib/utils";
 
 
 interface DashboardHeaderProps {
   isLoading?: boolean;
   address?: string;
+  netWorth?: number;
 }
 
-export function DashboardHeader({ isLoading, address }: DashboardHeaderProps) {
-  // Mock Net Worth calculation or placeholder
-  const netWorth = "$12,450.32"; 
+export function DashboardHeader({ isLoading, address, netWorth = 0 }: DashboardHeaderProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -41,6 +42,7 @@ export function DashboardHeader({ isLoading, address }: DashboardHeaderProps) {
               className="h-6 w-6 text-muted-foreground hover:text-foreground"
               onClick={handleCopy}
               title="Copy Address"
+              type="button"
             >
               {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
             </Button>
@@ -58,10 +60,9 @@ export function DashboardHeader({ isLoading, address }: DashboardHeaderProps) {
             {isLoading ? (
                <span className="animate-pulse bg-muted rounded h-8 w-32 block"></span>
             ) : (
-               netWorth
+               formatCurrency(netWorth)
             )}
           </div>
-          <p className="text-xs text-muted-foreground">+2.5% from last month</p>
         </CardContent>
       </Card>
     </div>

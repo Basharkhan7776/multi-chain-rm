@@ -6,13 +6,14 @@ import { Loader2 } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { ControlBar } from "@/components/dashboard/control-bar";
 import { TokenResults } from "@/components/dashboard/token-results";
-import { MOCK_PORTFOLIO_DATA, MOCK_CHAIN_NAMES } from "@/lib/mock-data";
+import { MOCK_CHAIN_NAMES } from "@/lib/mock-data";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { useState } from "react";
 import { useDisconnect } from "wagmi";
 import { useAppDispatch } from "@/lib/store/store";
 import { setAddress } from "@/lib/store/features/wallet-slice";
 import { useRouter } from "next/navigation";
+import { getAdjustedAmount } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { disconnect } = useDisconnect();
@@ -33,19 +34,13 @@ export default function DashboardPage() {
 
   // Data Fetching
   const { data: portfolioData, isLoading, isError, address } = usePortfolio();
-
-  // Use mock data if no wallet or if explicit "demo mode" desired? 
-  // For now: real data if available, else empty or mock? 
-  // User instructions imply connecting to backend.
-  // If no wallet connected, user sees empty or loading? 
-  // Let's fallback to empty array if no data.
   
   const displayData = portfolioData || [];
   
   // Extract chain names dynamically from real data
   const dynamicChainOptions = useMemo(() => {
     if (!displayData.length) return MOCK_CHAIN_NAMES;
-    return Array.from(new Set(displayData.map(c => c.name))).sort();
+    return Array.from(new Set(displayData.map(c => c.display_name))).sort();
   }, [displayData]);
 
   // Filter & Sort Logic
@@ -54,7 +49,7 @@ export default function DashboardPage() {
 
     // 1. Filter by Chain
     if (chainFilter !== "all") {
-      data = data.filter((item) => item.name === chainFilter);
+      data = data.filter((item) => item.display_name === chainFilter);
     }
 
     // 2. Filter by Search (Token Name)
@@ -68,33 +63,43 @@ export default function DashboardPage() {
 
     // 3. Sort
     if (sortBy === "alphabetical") {
-      data.sort((a, b) => a.name.localeCompare(b.name));
+      data.sort((a, b) => a.display_name.localeCompare(b.display_name));
     } else if (sortBy === "highest") {
       data.sort((a, b) => {
-        const sumA = a.balances.reduce((acc, t) => acc + parseFloat(t.amount), 0);
-        const sumB = b.balances.reduce((acc, t) => acc + parseFloat(t.amount), 0);
-        return sumB - sumA;
+        // Helper to calc total value of a chain
+        const getChainValue = (c: typeof a) => c.balances.reduce((acc, t) => {
+            const amount = getAdjustedAmount(t.amount, t.decimals ?? 18);
+            const price = t.price ? parseFloat(t.price) : 0;
+            return acc + (amount * price);
+        }, 0);
+        
+        return getChainValue(b) - getChainValue(a);
       });
     }
 
     return data;
   }, [chainFilter, searchQuery, sortBy, displayData]);
   
-  // Calculate Global Net Worth (Mock for now since we don't have prices)
+  // Calculate Global Net Worth
   const globalNetWorth = useMemo(() => {
-     // Here we would ideally sum up value if we had prices.
-     // For now, let's just count total tokens as a proxy or keep the mock value in header?
-     // The DashboardHeader has internal mock value.
-     // We should probably pass down a calculated value or isLoading state.
-     return undefined; 
+      if (!displayData) return 0;
+      return displayData.reduce((totalAcc, chain) => {
+          const chainValue = chain.balances.reduce((chainAcc, token) => {
+               const price = token.price ? parseFloat(token.price) : 0;
+               const amount = getAdjustedAmount(token.amount, token.decimals ?? 18);
+               return chainAcc + (amount * price);
+          }, 0);
+          return totalAcc + chainValue;
+      }, 0);
   }, [displayData]);
+
 
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         
         {/* Top Header */}
-        <DashboardHeader isLoading={isLoading} address={address} />
+        <DashboardHeader isLoading={isLoading} address={address} netWorth={globalNetWorth} />
 
         {/* Controls */}
         <ControlBar

@@ -16,6 +16,16 @@ export function formatBalance(amount: number, decimals = 2): string {
 }
 
 /**
+ * Format currency
+ */
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(amount);
+}
+
+/**
  * Formats a number using compact notation (K, M, B, T).
  * e.g. 1500 -> 1.5K, 1000000 -> 1M
  */
@@ -46,6 +56,28 @@ export function calculateGlobalTotals(tokenLists: Array<Array<{ token_id: string
   })
 
   return totals
+}
+
+/**
+ * Formats a raw token amount by dividing by decimals and using compact notation.
+ */
+export function formatTokenAmount(rawAmount: string | number, decimals: number): string {
+  const amount = typeof rawAmount === "string" ? parseFloat(rawAmount) : rawAmount;
+  if (isNaN(amount)) return "0";
+  
+  const adjustedAmount = amount / Math.pow(10, decimals);
+  
+  // Use compact notation for the adjusted amount
+  return formatCompactNumber(adjustedAmount);
+}
+
+/**
+ * Helper to get the actual number value from raw amount and decimals
+ */
+export function getAdjustedAmount(rawAmount: string | number, decimals: number): number {
+    const amount = typeof rawAmount === "string" ? parseFloat(rawAmount) : rawAmount;
+    if (isNaN(amount)) return 0;
+    return amount / Math.pow(10, decimals);
 }
 
 /**

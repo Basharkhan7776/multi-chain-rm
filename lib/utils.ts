@@ -81,6 +81,31 @@ export function getAdjustedAmount(rawAmount: string | number, decimals: number):
 }
 
 /**
+ * Format balance for detailed views (e.g. Dialog).
+ * Uses scientific notation for very small numbers.
+ */
+export function formatDetailedBalance(amount: number): string {
+    if (amount > 0 && amount < 0.0001) {
+        return amount.toExponential(4); // e.g. 1.2345e-5
+    }
+    return formatBalance(amount, 4);
+}
+
+/**
+ * Format token amount for Card view (compact).
+ * Returns "0..." for very small non-zero amounts.
+ */
+export function formatCardTokenAmount(rawAmount: string | number, decimals: number): string {
+    const amount = getAdjustedAmount(rawAmount, decimals);
+    
+    if (amount > 0 && amount < 0.01) {
+        return "0...";
+    }
+    
+    return formatCompactNumber(amount);
+}
+
+/**
  * Debounce function to delay function execution
  */
 export function debounce<T extends (...args: any[]) => any>(func: T, delay: number): (...args: Parameters<T>) => void {

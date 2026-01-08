@@ -4,7 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Chain } from "@/lib/types";
-import { formatCompactNumber, formatCurrency, getAdjustedAmount, formatTokenAmount } from "@/lib/utils";
+import { 
+  formatCompactNumber, 
+  formatCurrency, 
+  getAdjustedAmount, 
+  formatCardTokenAmount,
+  formatDetailedBalance 
+} from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -73,30 +79,30 @@ export function ChainCard({ chain }: ChainCardProps) {
                         {chain.balances.slice(0, 3).map((token, idx) => (
                             <div
                             key={`${token.token_id}-${idx}`}
-                            className="flex items-center justify-between text-sm border-b border-border/50 last:border-0 py-2"
+                            className="flex items-center justify-between text-sm border-b border-border/50 last:border-0 py-2 gap-2"
                             >
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 min-w-0 overflow-hidden">
                                 {token.image ? (
-                                    <Avatar className="h-5 w-5">
+                                    <Avatar className="h-5 w-5 shrink-0">
                                         <AvatarImage src={token.image} alt={token.displayName || token.token_id} />
                                         <AvatarFallback className="text-[10px]">{token.token_id[0]}</AvatarFallback>
                                     </Avatar>
                                 ) : (
-                                    <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px]">
+                                    <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] shrink-0">
                                         {token.token_id[0]}
                                     </div>
                                 )}
                                 
-                                <div className="flex flex-col">
-                                    <span className="font-medium text-foreground leading-none">
+                                <div className="flex flex-col min-w-0">
+                                    <span className="font-medium text-foreground leading-none truncate">
                                         {token.displayName || token.token_id}
                                     </span>
                                 </div>
                             </div>
                             
-                            <div className="flex flex-col items-end">
+                            <div className="flex flex-col items-end shrink-0">
                                 <span className="text-foreground font-mono font-medium">
-                                    {formatTokenAmount(token.amount, token.decimals ?? 18)}
+                                    {formatCardTokenAmount(token.amount, token.decimals ?? 18)}
                                 </span>
                                 {token.price && (
                                     <span className="text-xs text-muted-foreground">
@@ -118,8 +124,8 @@ export function ChainCard({ chain }: ChainCardProps) {
                 </Card>
             </div>
         </DialogTrigger>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
+        <DialogContent className="sm:max-w-7xl w-full max-h-[80vh]">
+            <DialogHeader className="mb-4">
                 <DialogTitle className="flex items-center gap-3 text-2xl">
                      <Avatar className="h-10 w-10">
                             <AvatarImage src={chain.chain_img} alt={chain.display_name} />
@@ -132,7 +138,7 @@ export function ChainCard({ chain }: ChainCardProps) {
                 </div>
             </DialogHeader>
 
-            <div className="mt-6">
+            <ScrollArea className="h-[60vh] rounded-md border p-4">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -173,7 +179,7 @@ export function ChainCard({ chain }: ChainCardProps) {
                                         {price > 0 ? formatCurrency(price) : '-'}
                                     </TableCell>
                                     <TableCell className="text-right font-mono">
-                                        {formatCompactNumber(adjustedAmount)}
+                                        {formatDetailedBalance(adjustedAmount)}
                                     </TableCell>
                                     <TableCell className="text-right font-bold">
                                         {formatCurrency(value)}
@@ -183,7 +189,7 @@ export function ChainCard({ chain }: ChainCardProps) {
                         })}
                     </TableBody>
                 </Table>
-            </div>
+            </ScrollArea>
         </DialogContent>
     </Dialog>
   );

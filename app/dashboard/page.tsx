@@ -151,8 +151,8 @@ export default function DashboardPage() {
   }, [displayData]);
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <main className="min-h-screen bg-background text-foreground flex flex-col">
+      <div className="container mx-auto px-4 py-8 max-w-7xl flex-1 flex flex-col">
         {/* Top Header */}
         <DashboardHeader
           isLoading={isLoading}
@@ -175,16 +175,16 @@ export default function DashboardPage() {
         />
 
         {/* Results Area */}
-        <div className="mt-8">
+        <div className="mt-8 flex-1 flex flex-col">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-20 space-y-4">
+            <div className="flex-1 flex flex-col items-center justify-center space-y-4">
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
               <p className="text-muted-foreground">
                 Fetching balances from Euclid Protocol...
               </p>
             </div>
           ) : isError ? (
-            <div className="flex flex-col items-center justify-center py-20 text-destructive">
+            <div className="flex-1 flex flex-col items-center justify-center text-destructive">
               <p className="text-lg font-semibold">
                 Failed to load portfolio data.
               </p>
@@ -193,7 +193,7 @@ export default function DashboardPage() {
               </p>
             </div>
           ) : !address ? (
-            <div className="text-center py-20 text-muted-foreground">
+            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
               Please connect your wallet to view your portfolio.
             </div>
           ) : (

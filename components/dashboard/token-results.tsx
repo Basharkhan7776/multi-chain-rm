@@ -1,4 +1,3 @@
-                                        
 import { useState } from "react";
 import { Chain } from "@/lib/types";
 import { ChainCard } from "@/components/dashboard/chain-card";
@@ -36,15 +35,19 @@ export function TokenResults({ chains, viewMode }: TokenResultsProps) {
 
   if (chains.length === 0) {
     return (
-      <div className="text-center py-20">
-        <h3 className="text-lg font-medium text-muted-foreground">No chains found.</h3>
-        <p className="text-sm text-muted-foreground/60">Try adjusting your filters.</p>
+      <div className="flex-1 flex flex-col items-center justify-center text-center">
+        <h3 className="text-lg font-medium text-muted-foreground">
+          No chains found.
+        </h3>
+        <p className="text-sm text-muted-foreground/60">
+          Try adjusting your filters.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col flex-1 gap-6">
       {/* Content Grid/List */}
       <div
         className={
@@ -54,44 +57,57 @@ export function TokenResults({ chains, viewMode }: TokenResultsProps) {
         }
       >
         {currentChains.map((chain) => (
-          <div key={chain.chain_uid} className={viewMode === "list" ? "w-full" : "h-full"}>
+          <div
+            key={chain.chain_uid}
+            className={viewMode === "list" ? "w-full" : "h-full"}
+          >
             <ChainCard chain={chain} />
           </div>
         ))}
       </div>
 
-      {/* Pagination Footer */}
-      {totalPages > 1 && (
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious 
-                onClick={() => handlePageChange(currentPage - 1)} 
-                className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-              />
-            </PaginationItem>
-            
-            {Array.from({ length: totalPages }).map((_, i) => (
-              <PaginationItem key={i}>
-                <PaginationLink
-                  isActive={currentPage === i + 1}
-                  onClick={() => handlePageChange(i + 1)}
-                  className="cursor-pointer"
-                >
-                  {i + 1}
-                </PaginationLink>
+      {/* Pagination Footer - Pushed to bottom */}
+      <div className="mt-auto">
+        {totalPages > 1 && (
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  className={
+                    currentPage === 1
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                />
               </PaginationItem>
-            ))}
 
-            <PaginationItem>
-              <PaginationNext 
-                onClick={() => handlePageChange(currentPage + 1)}
-                className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      )}
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <PaginationItem key={i}>
+                  <PaginationLink
+                    isActive={currentPage === i + 1}
+                    onClick={() => handlePageChange(i + 1)}
+                    className="cursor-pointer"
+                  >
+                    {i + 1}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  className={
+                    currentPage === totalPages
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
+      </div>
     </div>
   );
 }

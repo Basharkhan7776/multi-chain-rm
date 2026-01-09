@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Chain } from "@/lib/types";
 import {
@@ -155,7 +155,7 @@ export function ChainCard({ chain }: ChainCardProps) {
       <DialogTrigger asChild>
         <div className="h-full">{CardContentComponent}</div>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-7xl w-full max-h-[80vh]">
+      <DialogContent className="max-w-[95vw] sm:max-w-7xl w-full max-h-[80vh]">
         <DialogHeader className="mb-4">
           <DialogTitle className="flex items-center gap-3 text-2xl">
             <Avatar className="h-10 w-10">
@@ -171,69 +171,76 @@ export function ChainCard({ chain }: ChainCardProps) {
             </span>
           </div>
         </DialogHeader>
-
-        <ScrollArea className="h-[60vh] rounded-md border p-4">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Asset</TableHead>
-                <TableHead className="text-right">Price</TableHead>
-                <TableHead className="text-right">Balance</TableHead>
-                <TableHead className="text-right">Value</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {chain.balances.map((token, idx) => {
-                const price = token.price ? parseFloat(token.price) : 0;
-                const decimals = token.decimals ?? 18;
-                const adjustedAmount = getAdjustedAmount(
-                  token.amount,
-                  decimals
-                );
-                const value = price * adjustedAmount;
-
-                return (
-                  <TableRow key={`${token.token_id}-${idx}`}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {token.image ? (
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage
-                              src={token.image}
-                              alt={token.displayName || token.token_id}
-                            />
-                            <AvatarFallback>{token.token_id[0]}</AvatarFallback>
-                          </Avatar>
-                        ) : (
-                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs">
-                            {token.token_id[0]}
-                          </div>
-                        )}
-                        <div>
-                          <div className="font-bold">
-                            {token.displayName || token.token_id}
-                          </div>
-                          <div className="text-xs text-muted-foreground uppercase">
-                            {token.token_id}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {price > 0 ? formatCurrency(price) : "-"}
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {formatDetailedBalance(adjustedAmount)}
-                    </TableCell>
-                    <TableCell className="text-right font-bold">
-                      {formatCurrency(value)}
-                    </TableCell>
+        <div className="overflow-hidden -m-4 md:m-1">
+          <ScrollArea className="h-[60vh] rounded-md border w-full">
+            <div className="sm:p-1 md:p-4 min-w-full">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Asset</TableHead>
+                    <TableHead className="text-right">Price</TableHead>
+                    <TableHead className="text-right">Balance</TableHead>
+                    <TableHead className="text-right">Value</TableHead>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </ScrollArea>
+                </TableHeader>
+                <TableBody>
+                  {chain.balances.map((token, idx) => {
+                    const price = token.price ? parseFloat(token.price) : 0;
+                    const decimals = token.decimals ?? 18;
+                    const adjustedAmount = getAdjustedAmount(
+                      token.amount,
+                      decimals
+                    );
+                    const value = price * adjustedAmount;
+
+                    return (
+                      <TableRow key={`${token.token_id}-${idx}`}>
+                        <TableCell className="min-w-[200px]">
+                          <div className="flex items-center gap-2">
+                            {token.image ? (
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage
+                                  src={token.image}
+                                  alt={token.displayName || token.token_id}
+                                />
+                                <AvatarFallback>
+                                  {token.token_id[0]}
+                                </AvatarFallback>
+                              </Avatar>
+                            ) : (
+                              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs">
+                                {token.token_id[0]}
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-bold">
+                                {token.displayName || token.token_id}
+                              </div>
+                              <div className="text-xs text-muted-foreground uppercase">
+                                {token.token_id}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right whitespace-nowrap">
+                          {price > 0 ? formatCurrency(price) : "-"}
+                        </TableCell>
+                        <TableCell className="text-right font-mono whitespace-nowrap">
+                          {formatDetailedBalance(adjustedAmount)}
+                        </TableCell>
+                        <TableCell className="text-right font-bold whitespace-nowrap">
+                          {formatCurrency(value)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+            <ScrollBar orientation="horizontal" />
+            <ScrollBar orientation="vertical" />
+          </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );

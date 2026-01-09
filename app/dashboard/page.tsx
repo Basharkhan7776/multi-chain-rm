@@ -52,27 +52,31 @@ export default function DashboardPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Data Fetching: Pass filters to the hook (Server-Side)
+  // Data Fetching: Fetch ALL data (Server-side filtering removed)
   const {
     data: portfolioData,
     isLoading,
     isError,
     error,
     address,
-  } = usePortfolio({
-    search: debouncedSearch,
-    chain: chainFilter,
-  });
+  } = usePortfolio();
 
   // Calculate unique chains from portfolio data
   const chainOptions = useMemo(() => {
     if (!portfolioData) return [];
     // Extract unique chain names/ids from the portfolio
     // The portfolioData contains an array of chains objects
-    return portfolioData.map((c: Chain) => c.display_name).sort();
+    const names = portfolioData
+      .map((c: Chain) => c.display_name)
+      .filter((name: string) => name && name.trim() !== "");
+    return Array.from(new Set(names)).sort();
   }, [portfolioData]);
 
-  const displayData = portfolioData || [];
+  const displayData = useMemo(() => {
+    return (portfolioData || []).filter(
+      (c) => c.display_name && c.display_name.trim() !== ""
+    );
+  }, [portfolioData]);
 
   // Error Handling Effect
   useEffect(() => {
@@ -111,8 +115,52 @@ export default function DashboardPage() {
   const filteredData = useMemo(() => {
     let data = [...displayData];
 
-    // Note: Filtering is now handled on the server via usePortfolio
-    // We only handle client-side sorting here
+    // 1. Filter by Chain
+    if (chainFilter !== "all") {
+      data = data.filter(
+        (c) => c.display_name === chainFilter || c.chain_uid === chainFilter
+      );
+    }
+
+    // 2. Filter by Search (Name or Tokens)
+    if (debouncedSearch) {
+      const lowerSearch = debouncedSearch.toLowerCase();
+      data = data
+        .map((chain) => {
+          // Check if chain name matches
+          const chainMatches = chain.display_name
+            .toLowerCase()
+            .includes(lowerSearch);
+
+          // Filter tokens that match
+          const matchingTokens = chain.balances.filter((token: any) => {
+            const tokenId = token.token_id.toLowerCase();
+            const displayName = token.displayName?.toLowerCase() || "";
+            return (
+              tokenId.includes(lowerSearch) || displayName.includes(lowerSearch)
+            );
+          });
+
+          // Logic:
+          // - If chain name matches, return chain with ALL tokens?
+          //   Let's match the previous server-side logic:
+          //   If chain matches, keep it.
+          if (chainMatches) {
+            return chain;
+          }
+
+          // If chain doesn't match, return chain only if it has matching tokens
+          if (matchingTokens.length > 0) {
+            return {
+              ...chain,
+              balances: matchingTokens,
+            };
+          }
+
+          return null; // Exclude this chain
+        })
+        .filter(Boolean) as Chain[];
+    }
 
     // 3. Sort
     if (sortBy === "alphabetical") {
@@ -132,7 +180,7 @@ export default function DashboardPage() {
     }
 
     return data;
-  }, [sortBy, displayData]);
+  }, [sortBy, displayData, chainFilter, debouncedSearch]);
 
   // Calculate Global Net Worth
   const globalNetWorth = useMemo(() => {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Chain } from "@/lib/types";
 import { ChainCard } from "@/components/dashboard/chain-card";
 import {
@@ -20,6 +20,11 @@ const ITEMS_PER_PAGE = 6;
 
 export function TokenResults({ chains, viewMode }: TokenResultsProps) {
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset page when chains (filter/search) change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [chains]);
 
   // Pagination Logic
   const totalPages = Math.ceil(chains.length / ITEMS_PER_PAGE);

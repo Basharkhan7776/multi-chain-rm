@@ -109,29 +109,31 @@ export function ControlBar({
         </Tooltip>
 
         {/* View Toggle */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div>
-              <Tabs
-                value={viewMode}
-                onValueChange={(v) => onViewModeChange(v as "grid" | "list")}
-                className="w-auto"
-              >
-                <TabsList className="grid w-[80px] grid-cols-2">
-                  <TabsTrigger value="grid">
-                    <LayoutGrid className="h-4 w-4" />
-                  </TabsTrigger>
-                  <TabsTrigger value="list">
-                    <ListIcon className="h-4 w-4" />
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Toggle between grid and list view</p>
-          </TooltipContent>
-        </Tooltip>
+        <div className="sm:block hidden">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <Tabs
+                  value={viewMode}
+                  onValueChange={(v) => onViewModeChange(v as "grid" | "list")}
+                  className="w-auto"
+                >
+                  <TabsList className="grid w-[80px] grid-cols-2">
+                    <TabsTrigger value="grid">
+                      <LayoutGrid className="h-4 w-4" />
+                    </TabsTrigger>
+                    <TabsTrigger value="list">
+                      <ListIcon className="h-4 w-4" />
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Toggle between grid and list view</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
 
         {/* Disconnect Button - Aligned with filters */}
         {onDisconnect && (

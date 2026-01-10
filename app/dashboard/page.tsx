@@ -13,6 +13,7 @@ import { setAddress, setIsConnected } from "@/lib/store/features/wallet-slice";
 import { useRouter } from "next/navigation";
 import { getAdjustedAmount } from "@/lib/utils";
 import { Chain } from "@/lib/types";
+import { getChainMetadata } from "@/lib/chain-utils";
 
 export default function DashboardPage() {
   const { disconnect } = useDisconnect();
@@ -61,22 +62,36 @@ export default function DashboardPage() {
     address,
   } = usePortfolio();
 
+  // Process portfolio data to ensure names/images exist
+  const processedPortfolioData = useMemo(() => {
+    if (!portfolioData) return [];
+    return portfolioData.map((c: Chain) => {
+      const { display_name, chain_img } = getChainMetadata(
+        c.chain_uid,
+        c.display_name,
+        c.chain_img
+      );
+      return {
+        ...c,
+        display_name,
+        chain_img,
+      };
+    });
+  }, [portfolioData]);
+
   // Calculate unique chains from portfolio data
   const chainOptions = useMemo(() => {
-    if (!portfolioData) return [];
+    if (!processedPortfolioData) return [];
     // Extract unique chain names/ids from the portfolio
-    // The portfolioData contains an array of chains objects
-    const names = portfolioData
+    const names = processedPortfolioData
       .map((c: Chain) => c.display_name)
       .filter((name: string) => name && name.trim() !== "");
     return Array.from(new Set(names)).sort();
-  }, [portfolioData]);
+  }, [processedPortfolioData]);
 
   const displayData = useMemo(() => {
-    return (portfolioData || []).filter(
-      (c) => c.display_name && c.display_name.trim() !== ""
-    );
-  }, [portfolioData]);
+    return processedPortfolioData || [];
+  }, [processedPortfolioData]);
 
   // Error Handling Effect
   useEffect(() => {
@@ -113,7 +128,7 @@ export default function DashboardPage() {
 
   // Filter & Sort Logic
   const filteredData = useMemo(() => {
-    let data = [...displayData];
+    let data: Chain[] = [...displayData];
 
     // 1. Filter by Chain
     if (chainFilter !== "all") {

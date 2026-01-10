@@ -8,7 +8,7 @@ The architecture is designed to minimize client-side load while providing real-t
 
 ```mermaid
 graph TD
-    Client[Client (React/Next.js)] -->|1. Request Portfolio| API[BFF / API Layer]
+    Client["Client (React/Next.js)"] -->|1. Request Portfolio| API["BFF / API Layer"]
     subgraph "Backend for Frontend (BFF)"
         API -->|Authentication| Auth[Validate Address]
         API -->|2. Fetch Metadata| GQL[Euclid GraphQL]

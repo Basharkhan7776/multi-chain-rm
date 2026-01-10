@@ -93,16 +93,6 @@ export default function DashboardPage() {
     return processedPortfolioData || [];
   }, [processedPortfolioData]);
 
-  // Error Handling Effect
-  useEffect(() => {
-    if (isError) {
-      toast.error(
-        error?.message ||
-          "Failed to load portfolio data. Please check the wallet address."
-      );
-    }
-  }, [isError, error]);
-
   // Empty Data Effect
   useEffect(() => {
     // Only show toast if NO filters are active (global empty state)

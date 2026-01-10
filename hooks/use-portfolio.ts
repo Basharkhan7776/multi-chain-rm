@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useAppSelector } from "@/lib/store/store";
 import { Chain } from "@/lib/types";
+import { toast } from "sonner";
 
 async function fetchUserBalances(address: string): Promise<Chain[]> {
   const url = `/api/user-balances/${address}`;
@@ -13,8 +14,9 @@ async function fetchUserBalances(address: string): Promise<Chain[]> {
         const errorData = await res.json();
         errorMessage = errorData.error || errorMessage;
     } catch (e) {
-        // ignore json parse error
+    // ignore json parse error
     }
+    toast.error(errorMessage, { id: "portfolio-fetch-error" });
     throw new Error(errorMessage);
   }
   return res.json();
@@ -56,8 +58,11 @@ export function usePortfolio() {
     }
   }, [query.data, address]);
 
+
+
   return {
     ...query,
     address,
   };
 }
+
